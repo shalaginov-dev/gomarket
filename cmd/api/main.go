@@ -27,22 +27,25 @@ func main() {
 		log.Fatal(err)
 	}
 
-	ctx := context.Background()
-	pool, err := db.NewPool(ctx, cfg.DBDSN)
+	// Создаем пул соединений с БД
+	pool, err := db.NewPool(context.Background(), cfg.DBDSN)
 	if err != nil {
-		log.Fatal("Failed to connect to database", err)
+		log.Fatal(err)
 	}
+	// Закрываем соединение с базой, когда приложение останавливается
 	defer pool.Close()
-	fmt.Println("Database connected")
 
+	// Делаем миграцию
 	if err := db.RunMigrations(cfg.DBDSN, "./migrations"); err != nil {
-		log.Fatal("Failed to run migrations", err)
+		log.Fatal(err)
 	}
-	fmt.Println("Migrations applied")
 
+	// Создаем роутер
 	r := gin.Default()
+	// Добавляем эндпоинты
 	r.GET("/health", healthHandler)
 
+	// Стартуем сервер
 	if err := r.Run(":" + cfg.Port); err != nil {
 		fmt.Println("Server failed:", err)
 	}

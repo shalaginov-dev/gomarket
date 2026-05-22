@@ -1,15 +1,4 @@
-services:
-  app:
-    build: .
-    ports:
-      - "8080:8080"
-    environment:
-      ENV: "development"
-      GIN_MODE: "release"
-      PORT: "8080"
-
-      DB_DSN: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
-    depends_on:
+depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
