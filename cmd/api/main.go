@@ -7,6 +7,9 @@ import (
 
 	"gomarket/internal/config"
 	"gomarket/internal/db"
+	"gomarket/internal/handler"
+	"gomarket/internal/repository"
+	"gomarket/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -40,10 +43,15 @@ func main() {
 		log.Fatal(err)
 	}
 
+	userRepo := repository.NewUserRepository(pool)
+	passwordService := service.NewPasswordServise()
+	userService := service.NewUserService(userRepo, passwordService)
+	userHandler := handler.NewUserHandler(userService)
 	// Создаем роутер
 	r := gin.Default()
 	// Добавляем эндпоинты
 	r.GET("/health", healthHandler)
+	r.POST("/register", userHandler.RegisterHandler)
 
 	// Стартуем сервер
 	if err := r.Run(":" + cfg.Port); err != nil {
