@@ -30,3 +30,17 @@ func (r *UserRepository) Create(ctx context.Context, email string, passwordHash 
 
 	return &user, nil
 }
+
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*domain.User, error) {
+	query := `
+        SELECT user_id, email, password_hash, role, created_at
+        FROM users 
+        WHERE email = $1          -- ← Вот здесь мы говорим: "ищи по полю email"
+        LIMIT 1`
+	var user domain.User
+	err := r.pool.QueryRow(ctx, query, email).Scan(&user.UserID, &user.Email, &user.PasswordHash, &user.Role, &user.CreatedAt)
+	if err != nil {
+		return nil, fmt.Errorf("user not found: %w", err)
+	}
+	return &user, nil
+}

@@ -47,11 +47,13 @@ func main() {
 	passwordService := service.NewPasswordServise()
 	userService := service.NewUserService(userRepo, passwordService)
 	userHandler := handler.NewUserHandler(userService)
+
 	// Создаем роутер
 	r := gin.Default()
 	// Добавляем эндпоинты
 	r.GET("/health", healthHandler)
 	r.POST("/register", userHandler.RegisterHandler)
+	r.POST("/login", userHandler.LoginHandler)
 
 	// Стартуем сервер
 	if err := r.Run(":" + cfg.Port); err != nil {

@@ -21,6 +21,10 @@ type RegisterRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required,min=6"`
+}
 
 func NewUserHandler(userService *service.UserService) *UserHandler {
 	return &UserHandler{userService: userService}
@@ -45,6 +49,29 @@ func (r *UserHandler) RegisterHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{
 		"message": "User registered successfully",
+		"user":    resUser,
+	})
+}
+
+func (r *UserHandler) LoginHandler(c *gin.Context) {
+	var req LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	user, err := r.userService.Login(c, req.Email, req.Password)
+	if err != nil {
+		c.JSON(401, gin.H{"error": err.Error()})
+		return
+	}
+	resUser := UserResponse{
+		UserID:    user.UserID,
+		Email:     user.Email,
+		Role:      user.Role,
+		CreatedAt: user.CreatedAt,
+	}
+	c.JSON(200, gin.H{
+		"message": "successfully logined",
 		"user":    resUser,
 	})
 }
