@@ -35,10 +35,12 @@ func (s *UserService) Register(ctx context.Context, email, password string) (*do
 }
 
 func (s *UserService) Login(ctx context.Context, email, password string) (*domain.User, error) {
+	// Ищем пользователя по почте
 	user, err := s.userRepo.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, fmt.Errorf("user not found: %w", err)
 	}
+	// Проверям пароль
 	if s.passwordService.CheckPassword(password, user.PasswordHash) {
 		return user, nil
 	}

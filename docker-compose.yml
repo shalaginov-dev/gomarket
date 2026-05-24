@@ -7,8 +7,9 @@ services:
       ENV: "development"
       GIN_MODE: "release"
       PORT: "8080"
-
       DB_DSN: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_EXPIRY: ${JWT_EXPIRY}
     depends_on:
       postgres:
         condition: service_healthy

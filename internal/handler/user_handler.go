@@ -2,6 +2,7 @@ package handler
 
 import (
 	"gomarket/internal/service"
+	"gomarket/internal/token"
 	"net/http"
 	"time"
 
@@ -10,6 +11,8 @@ import (
 
 type UserHandler struct {
 	userService *service.UserService
+	jwtSecret   string
+	jwtExpiry   int
 }
 type UserResponse struct {
 	UserID    int       `json:"user_id"`
@@ -26,16 +29,22 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-func NewUserHandler(userService *service.UserService) *UserHandler {
-	return &UserHandler{userService: userService}
+func NewUserHandler(userService *service.UserService, JWTSecret string, JWTExpiry int) *UserHandler {
+	return &UserHandler{
+		userService: userService,
+		jwtSecret:   JWTSecret,
+		jwtExpiry:   JWTExpiry,
+	}
 }
 
 func (r *UserHandler) RegisterHandler(c *gin.Context) {
 	var req RegisterRequest
+	// Проверяем тело запроса
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	// Создаем учетную запись ползователя
 	user, err := r.userService.Register(c, req.Email, req.Password)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
@@ -55,6 +64,7 @@ func (r *UserHandler) RegisterHandler(c *gin.Context) {
 
 func (r *UserHandler) LoginHandler(c *gin.Context) {
 	var req LoginRequest
+	// Проверяем тело запроса
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -62,6 +72,11 @@ func (r *UserHandler) LoginHandler(c *gin.Context) {
 	user, err := r.userService.Login(c, req.Email, req.Password)
 	if err != nil {
 		c.JSON(401, gin.H{"error": err.Error()})
+		return
+	}
+	accessToken, err := token.GenerateAccessToken(user.UserID, user.Role, r.jwtSecret, r.jwtExpiry)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to generate token"})
 		return
 	}
 	resUser := UserResponse{
@@ -73,5 +88,6 @@ func (r *UserHandler) LoginHandler(c *gin.Context) {
 	c.JSON(200, gin.H{
 		"message": "successfully logined",
 		"user":    resUser,
+		"token":   accessToken,
 	})
 }

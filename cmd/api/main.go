@@ -46,7 +46,7 @@ func main() {
 	userRepo := repository.NewUserRepository(pool)
 	passwordService := service.NewPasswordServise()
 	userService := service.NewUserService(userRepo, passwordService)
-	userHandler := handler.NewUserHandler(userService)
+	userHandler := handler.NewUserHandler(userService, cfg.JWTSecret, cfg.JWTExpiry)
 
 	// Создаем роутер
 	r := gin.Default()
