@@ -8,6 +8,7 @@ import (
 	"gomarket/internal/config"
 	"gomarket/internal/db"
 	"gomarket/internal/handler"
+	"gomarket/internal/middleware"
 	"gomarket/internal/repository"
 	"gomarket/internal/service"
 
@@ -51,7 +52,7 @@ func main() {
 	// Создаем роутер
 	r := gin.Default()
 	// Добавляем эндпоинты
-	r.GET("/health", healthHandler)
+	r.GET("/health", middleware.AuthMiddleware(cfg.JWTSecret), healthHandler)
 	r.POST("/register", userHandler.RegisterHandler)
 	r.POST("/login", userHandler.LoginHandler)
 

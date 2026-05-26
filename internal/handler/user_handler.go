@@ -74,7 +74,7 @@ func (r *UserHandler) LoginHandler(c *gin.Context) {
 		c.JSON(401, gin.H{"error": err.Error()})
 		return
 	}
-	accessToken, err := token.GenerateAccessToken(user.UserID, user.Role, r.jwtSecret, r.jwtExpiry)
+	accessToken, err := token.GenerateAccessToken(user.UserID, user.Email, user.Role, r.jwtSecret, r.jwtExpiry)
 	if err != nil {
 		c.JSON(500, gin.H{"error": "failed to generate token"})
 		return
