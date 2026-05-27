@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"gomarket/internal/cache"
 	"gomarket/internal/config"
 	"gomarket/internal/db"
 	"gomarket/internal/handler"
@@ -38,6 +39,12 @@ func main() {
 	}
 	// Закрываем соединение с базой, когда приложение останавливается
 	defer pool.Close()
+
+	redis, err := cache.NewRedisClient(context.Background(), cfg.RedisURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer redis.Close()
 
 	// Делаем миграцию
 	if err := db.RunMigrations(cfg.DBDSN, "./migrations"); err != nil {

@@ -6,12 +6,15 @@ services:
     environment:
       ENV: "development"
       GIN_MODE: "release"
-      PORT: "8080"
+      PORT: ${SERVER_PORT}
       DB_DSN: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable
+      REDIS_URL: ${REDIS_URL}
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRY: ${JWT_EXPIRY}
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     networks:
      - gomarket
@@ -33,8 +36,24 @@ services:
       interval: 30s
       timeout: 10s
       retries: 5
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - gomarket
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 volumes:
   postgres_data:
+  redis_data:
+    driver: local
 
 networks:
   gomarket:

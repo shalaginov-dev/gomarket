@@ -6,6 +6,7 @@ type Config struct {
 	Port      string `envconfig:"PORT" default:"8080"`
 	Env       string `envconfig:"ENV" default:"development"`
 	DBDSN     string `envconfig:"DB_DSN"`
+	RedisURL  string `envconfig:"REDIS_URL"`
 	JWTSecret string `envconfig:"JWT_SECRET"`
 	JWTExpiry int    `envconfig:"JWT_EXPIRY" default:"15"`
 }
