@@ -53,8 +53,9 @@ func main() {
 
 	userRepo := repository.NewUserRepository(pool)
 	passwordService := service.NewPasswordServise()
+	tokenStore := cache.NewTokenStore(redis)
 	userService := service.NewUserService(userRepo, passwordService)
-	userHandler := handler.NewUserHandler(userService, cfg.JWTSecret, cfg.JWTExpiry)
+	userHandler := handler.NewUserHandler(userService, tokenStore, cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
 
 	// Создаем роутер
 	r := gin.Default()
@@ -62,6 +63,7 @@ func main() {
 	r.GET("/health", middleware.AuthMiddleware(cfg.JWTSecret), healthHandler)
 	r.POST("/register", userHandler.RegisterHandler)
 	r.POST("/login", userHandler.LoginHandler)
+	r.POST("/logout", middleware.AuthMiddleware(cfg.JWTSecret), userHandler.LogoutHandler)
 
 	// Стартуем сервер
 	if err := r.Run(":" + cfg.Port); err != nil {

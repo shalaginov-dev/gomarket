@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"gomarket/internal/cache"
 	"gomarket/internal/service"
 	"gomarket/internal/token"
 	"net/http"
@@ -10,9 +11,11 @@ import (
 )
 
 type UserHandler struct {
-	userService *service.UserService
-	jwtSecret   string
-	jwtExpiry   int
+	userService   *service.UserService
+	tokenStore    *cache.TokenStore
+	jwtSecret     string
+	jwtExpiry     int
+	refreshExpiry int
 }
 type UserResponse struct {
 	UserID    int       `json:"user_id"`
@@ -29,11 +32,13 @@ type LoginRequest struct {
 	Password string `json:"password" binding:"required,min=6"`
 }
 
-func NewUserHandler(userService *service.UserService, JWTSecret string, JWTExpiry int) *UserHandler {
+func NewUserHandler(userService *service.UserService, tokenStore *cache.TokenStore, JWTSecret string, JWTExpiry int, refreshExpiry int) *UserHandler {
 	return &UserHandler{
-		userService: userService,
-		jwtSecret:   JWTSecret,
-		jwtExpiry:   JWTExpiry,
+		userService:   userService,
+		tokenStore:    tokenStore,
+		jwtSecret:     JWTSecret,
+		jwtExpiry:     JWTExpiry,
+		refreshExpiry: refreshExpiry,
 	}
 }
 
@@ -76,9 +81,19 @@ func (r *UserHandler) LoginHandler(c *gin.Context) {
 	}
 	accessToken, err := token.GenerateAccessToken(user.UserID, user.Email, user.Role, r.jwtSecret, r.jwtExpiry)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "failed to generate token"})
+		c.JSON(500, gin.H{"error": "failed to generate access token"})
 		return
 	}
+	refreshToken, err := token.GenerateRefreshToken(user.UserID, user.Role, r.jwtSecret, r.refreshExpiry)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to generate refresh token"})
+		return
+	}
+	if err := r.tokenStore.SaveRefreshToken(c, user.UserID, refreshToken, time.Duration(r.refreshExpiry)*time.Minute); err != nil {
+		c.JSON(500, gin.H{"error": "failed to save refresh token"})
+		return
+	}
+
 	resUser := UserResponse{
 		UserID:    user.UserID,
 		Email:     user.Email,
@@ -86,8 +101,28 @@ func (r *UserHandler) LoginHandler(c *gin.Context) {
 		CreatedAt: user.CreatedAt,
 	}
 	c.JSON(200, gin.H{
-		"message": "successfully logined",
-		"user":    resUser,
-		"token":   accessToken,
+		"message":       "successfully logined",
+		"user":          resUser,
+		"token":         accessToken,
+		"refresh_token": refreshToken,
+	})
+}
+func (r *UserHandler) LogoutHandler(c *gin.Context) {
+	value, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(401, gin.H{"error": "unauthorized"})
+		return
+	}
+	userID, ok := value.(int)
+	if !ok {
+		c.JSON(500, gin.H{"error": "invalid user_id"})
+		return
+	}
+	if err := r.tokenStore.DeleteRefreshToken(c, userID); err != nil {
+		c.JSON(500, gin.H{"error": "failed to logout"})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message": "successfully logout",
 	})
 }
