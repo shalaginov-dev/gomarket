@@ -64,6 +64,7 @@ func main() {
 	r.POST("/register", userHandler.RegisterHandler)
 	r.POST("/login", userHandler.LoginHandler)
 	r.POST("/logout", middleware.AuthMiddleware(cfg.JWTSecret), userHandler.LogoutHandler)
+	r.POST("/refresh", userHandler.RefreshHandler)
 
 	// Стартуем сервер
 	if err := r.Run(":" + cfg.Port); err != nil {

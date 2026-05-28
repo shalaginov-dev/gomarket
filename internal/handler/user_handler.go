@@ -31,6 +31,9 @@ type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required,min=6"`
 }
+type RefreshToken struct {
+	Token string `json:"token" binding:"required"`
+}
 
 func NewUserHandler(userService *service.UserService, tokenStore *cache.TokenStore, JWTSecret string, JWTExpiry int, refreshExpiry int) *UserHandler {
 	return &UserHandler{
@@ -124,5 +127,34 @@ func (r *UserHandler) LogoutHandler(c *gin.Context) {
 	}
 	c.JSON(200, gin.H{
 		"message": "successfully logout",
+	})
+}
+
+func (r *UserHandler) RefreshHandler(c *gin.Context) {
+	var req RefreshToken
+	// Проверяем тело запроса
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	claims, err := token.ValidateAccessToken(req.Token, r.jwtSecret)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+	storedToken, err := r.tokenStore.GetRefreshToken(c, claims.UserID)
+	if err != nil || storedToken != req.Token {
+		c.JSON(401, gin.H{"error": "invalid refresh token"})
+		return
+	}
+
+	accessToken, err := token.GenerateAccessToken(claims.UserID, claims.Email, claims.Role, r.jwtSecret, r.jwtExpiry)
+	if err != nil {
+		c.JSON(500, gin.H{"error": "failed to generate access token"})
+		return
+	}
+	c.JSON(200, gin.H{
+		"message":        "successfully relogin",
+		"newAccesstoken": accessToken,
 	})
 }
