@@ -2,18 +2,19 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"log"
 
 	"gomarket/internal/cache"
 	"gomarket/internal/config"
 	"gomarket/internal/db"
 	"gomarket/internal/handler"
+	"gomarket/internal/logger"
 	"gomarket/internal/middleware"
 	"gomarket/internal/repository"
 	"gomarket/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"go.uber.org/zap"
 )
 
 type Health struct {
@@ -31,24 +32,29 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	// Создаем логер
+	zapLogger, err := logger.New(cfg.Env)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Создаем пул соединений с БД
 	pool, err := db.NewPool(context.Background(), cfg.DBDSN)
 	if err != nil {
-		log.Fatal(err)
+		zapLogger.Fatal("Failed to connect to database", zap.Error(err))
 	}
 	// Закрываем соединение с базой, когда приложение останавливается
 	defer pool.Close()
 
 	redis, err := cache.NewRedisClient(context.Background(), cfg.RedisURL)
 	if err != nil {
-		log.Fatal(err)
+		zapLogger.Fatal("Failed to connect to redis", zap.Error(err))
 	}
 	defer redis.Close()
 
 	// Делаем миграцию
 	if err := db.RunMigrations(cfg.DBDSN, "./migrations"); err != nil {
-		log.Fatal(err)
+		zapLogger.Fatal("Failed to run migrations", zap.Error(err))
 	}
 
 	userRepo := repository.NewUserRepository(pool)
@@ -56,9 +62,10 @@ func main() {
 	tokenStore := cache.NewTokenStore(redis)
 	userService := service.NewUserService(userRepo, passwordService)
 	userHandler := handler.NewUserHandler(userService, tokenStore, cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
-
 	// Создаем роутер
-	r := gin.Default()
+	r := gin.New()
+	r.Use(gin.Recovery())
+	r.Use(middleware.LoggerMiddleware(zapLogger))
 	// Добавляем эндпоинты
 	r.GET("/health", middleware.AuthMiddleware(cfg.JWTSecret), healthHandler)
 	r.POST("/register", userHandler.RegisterHandler)
@@ -68,6 +75,6 @@ func main() {
 
 	// Стартуем сервер
 	if err := r.Run(":" + cfg.Port); err != nil {
-		fmt.Println("Server failed:", err)
+		zapLogger.Fatal("Failed to run server", zap.Error(err))
 	}
 }
