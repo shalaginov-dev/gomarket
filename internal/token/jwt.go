@@ -37,7 +37,7 @@ func GenerateAccessToken(userID int, email string, role, secret string, expiryMi
 	return tokenString, nil
 }
 
-func ValidateAccessToken(tokenString, secret string) (*Claims, error) {
+func ValidateToken(tokenString, secret string) (*Claims, error) {
 
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 

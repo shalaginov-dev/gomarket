@@ -104,7 +104,7 @@ func (r *UserHandler) LoginHandler(c *gin.Context) {
 		CreatedAt: user.CreatedAt,
 	}
 	c.JSON(200, gin.H{
-		"message":       "successfully logined",
+		"message":       "successfully login",
 		"user":          resUser,
 		"token":         accessToken,
 		"refresh_token": refreshToken,
@@ -137,7 +137,7 @@ func (r *UserHandler) RefreshHandler(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-	claims, err := token.ValidateAccessToken(req.Token, r.jwtSecret)
+	claims, err := token.ValidateToken(req.Token, r.jwtSecret)
 	if err != nil {
 		c.JSON(500, gin.H{"error": err.Error()})
 		return

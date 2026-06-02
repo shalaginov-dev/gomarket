@@ -3,6 +3,11 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"gomarket/internal/cache"
 	"gomarket/internal/config"
@@ -73,8 +78,33 @@ func main() {
 	r.POST("/logout", middleware.AuthMiddleware(cfg.JWTSecret), userHandler.LogoutHandler)
 	r.POST("/refresh", userHandler.RefreshHandler)
 
-	// Стартуем сервер
-	if err := r.Run(":" + cfg.Port); err != nil {
-		zapLogger.Fatal("Failed to run server", zap.Error(err))
+	srv := &http.Server{
+		Addr:    ":" + cfg.Port,
+		Handler: r,
 	}
+
+	// Запуск сервера в горутине
+	go func() {
+		zapLogger.Info("HTTP server starting", zap.String("port", cfg.Port))
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			zapLogger.Fatal("HTTP server failed", zap.Error(err))
+		}
+	}()
+
+	// Ожидание сигнала остановки
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+
+	zapLogger.Info("Shutting down server...")
+
+	// Даём время на завершение текущих запросов
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		zapLogger.Error("Server forced to shutdown", zap.Error(err))
+	}
+
+	zapLogger.Info("Server exited gracefully")
 }

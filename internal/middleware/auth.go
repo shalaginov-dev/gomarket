@@ -28,7 +28,7 @@ func AuthMiddleware(jwtSecret string) gin.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 
 		// 4. Валидируем токен (вызываем экспортированную функцию)
-		claims, err := token.ValidateAccessToken(tokenString, jwtSecret)
+		claims, err := token.ValidateToken(tokenString, jwtSecret)
 		if err != nil {
 			c.JSON(401, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
