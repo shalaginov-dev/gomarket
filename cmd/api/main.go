@@ -63,10 +63,13 @@ func main() {
 	}
 
 	userRepo := repository.NewUserRepository(pool)
+	productRepo := repository.NewProductRepository(pool)
 	passwordService := service.NewPasswordServise()
 	tokenStore := cache.NewTokenStore(redis)
 	userService := service.NewUserService(userRepo, passwordService)
 	userHandler := handler.NewUserHandler(userService, tokenStore, cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
+	productService := service.NewProductService(productRepo)
+	productHandler := handler.NewProductHandler(productService)
 	// Создаем роутер
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -77,6 +80,12 @@ func main() {
 	r.POST("/login", userHandler.LoginHandler)
 	r.POST("/logout", middleware.AuthMiddleware(cfg.JWTSecret), userHandler.LogoutHandler)
 	r.POST("/refresh", userHandler.RefreshHandler)
+
+	r.GET("/products", productHandler.GetAllHandler)
+	r.GET("/products/:id", productHandler.GetByIDHandler)
+	r.POST("/products", productHandler.CreateHandler)
+	r.PUT("/products/:id", productHandler.UpdateHandler)
+	r.DELETE("/products/:id", productHandler.DeleteHandler)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
