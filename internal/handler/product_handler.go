@@ -19,22 +19,6 @@ func NewProductHandler(productService *service.ProductService) *ProductHandler {
 	}
 }
 
-func (h *ProductHandler) CreateHandler(c *gin.Context) {
-	var p domain.Product
-	// Проверяем тело запроса
-	if err := c.ShouldBindJSON(&p); err != nil {
-		Error(c, http.StatusBadRequest, err)
-		return
-	}
-	// Создаем продукт
-	product, err := h.productService.Create(c, &p)
-	if err != nil {
-		Error(c, http.StatusInternalServerError, err)
-		return
-	}
-	Created(c, product, "Product created successfully")
-}
-
 func (h *ProductHandler) GetAllHandler(c *gin.Context) {
 	limit := 10
 	if l := c.Query("limit"); l != "" {
@@ -68,6 +52,22 @@ func (h *ProductHandler) GetByIDHandler(c *gin.Context) {
 	}
 
 	Success(c, product)
+}
+
+func (h *ProductHandler) CreateHandler(c *gin.Context) {
+	var p domain.Product
+	// Проверяем тело запроса
+	if err := c.ShouldBindJSON(&p); err != nil {
+		Error(c, http.StatusBadRequest, err)
+		return
+	}
+	// Создаем продукт
+	product, err := h.productService.Create(c, &p)
+	if err != nil {
+		Error(c, http.StatusInternalServerError, err)
+		return
+	}
+	Created(c, product, "Product created successfully")
 }
 
 func (h *ProductHandler) UpdateHandler(c *gin.Context) {

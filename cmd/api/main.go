@@ -22,16 +22,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type Health struct {
-	Status string `json:"status"`
-}
-
-func healthHandler(c *gin.Context) {
-	health := Health{Status: "ok"}
-
-	c.JSON(200, health)
-}
-
 func main() {
 	cfg, err := config.Load()
 	if err != nil {
@@ -64,18 +54,23 @@ func main() {
 
 	userRepo := repository.NewUserRepository(pool)
 	productRepo := repository.NewProductRepository(pool)
-	passwordService := service.NewPasswordServise()
+
 	tokenStore := cache.NewTokenStore(redis)
+	cartStore := cache.NewCartStore(redis)
+
+	passwordService := service.NewPasswordServise()
 	userService := service.NewUserService(userRepo, passwordService)
-	userHandler := handler.NewUserHandler(userService, tokenStore, cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
 	productService := service.NewProductService(productRepo)
+	cartService := service.NewCartService(productRepo, cartStore)
+
+	userHandler := handler.NewUserHandler(userService, tokenStore, cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
 	productHandler := handler.NewProductHandler(productService)
+	cartHandler := handler.NewCartHandler(cartService)
 	// Создаем роутер
 	r := gin.New()
 	r.Use(gin.Recovery())
 	r.Use(middleware.LoggerMiddleware(zapLogger))
 	// Добавляем эндпоинты
-	r.GET("/health", middleware.AuthMiddleware(cfg.JWTSecret), healthHandler)
 	r.POST("/register", userHandler.RegisterHandler)
 	r.POST("/login", userHandler.LoginHandler)
 	r.POST("/logout", middleware.AuthMiddleware(cfg.JWTSecret), userHandler.LogoutHandler)
@@ -86,6 +81,10 @@ func main() {
 	r.POST("/products", productHandler.CreateHandler)
 	r.PUT("/products/:id", productHandler.UpdateHandler)
 	r.DELETE("/products/:id", productHandler.DeleteHandler)
+
+	r.GET("/cart", middleware.AuthMiddleware(cfg.JWTSecret), cartHandler.GetCartHandler)
+	r.POST("/cart/items", middleware.AuthMiddleware(cfg.JWTSecret), cartHandler.AddItemHandler)
+	r.DELETE("/cart/items/:product_id", middleware.AuthMiddleware(cfg.JWTSecret), cartHandler.RemoveItemHandler)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
