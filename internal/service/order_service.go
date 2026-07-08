@@ -56,3 +56,5 @@ func (s *OrderService) Checkout(ctx context.Context, userID int) (*domain.Order,
 	}
 	return order, nil
 }
+
+//1
