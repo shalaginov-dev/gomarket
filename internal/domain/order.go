@@ -17,3 +17,9 @@ type OrderItem struct {
 	Quantity    int     `json:"quantity"`
 	Price       float64 `json:"price"`
 }
+
+type OrderItemInput struct {
+	ProductID int
+	Quantity  int
+	Price     float64
+}

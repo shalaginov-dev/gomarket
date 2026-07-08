@@ -57,3 +57,11 @@ func (s *CartStore) RemoveItem(ctx context.Context, userID, productID int) error
 	}
 	return nil
 }
+
+func (s *CartStore) CleanCart(ctx context.Context, userID int) error {
+	key := "cart:" + strconv.Itoa(userID)
+	if err := s.client.Del(ctx, key).Err(); err != nil {
+		return err
+	}
+	return nil
+}

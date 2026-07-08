@@ -54,6 +54,7 @@ func main() {
 
 	userRepo := repository.NewUserRepository(pool)
 	productRepo := repository.NewProductRepository(pool)
+	orderRepo := repository.NewOrderRepository(pool)
 
 	tokenStore := cache.NewTokenStore(redis)
 	cartStore := cache.NewCartStore(redis)
@@ -62,10 +63,12 @@ func main() {
 	userService := service.NewUserService(userRepo, passwordService)
 	productService := service.NewProductService(productRepo)
 	cartService := service.NewCartService(productRepo, cartStore)
+	orderService := service.NewOrderService(orderRepo, productRepo, cartStore)
 
 	userHandler := handler.NewUserHandler(userService, tokenStore, cfg.JWTSecret, cfg.JWTExpiry, cfg.RefreshExpiry)
 	productHandler := handler.NewProductHandler(productService)
 	cartHandler := handler.NewCartHandler(cartService)
+	orderHandler := handler.NewOrderHandler(orderService)
 	// Создаем роутер
 	r := gin.New()
 	r.Use(gin.Recovery())
@@ -85,6 +88,8 @@ func main() {
 	r.GET("/cart", middleware.AuthMiddleware(cfg.JWTSecret), cartHandler.GetCartHandler)
 	r.POST("/cart/items", middleware.AuthMiddleware(cfg.JWTSecret), cartHandler.AddItemHandler)
 	r.DELETE("/cart/items/:product_id", middleware.AuthMiddleware(cfg.JWTSecret), cartHandler.RemoveItemHandler)
+
+	r.POST("/orders", middleware.AuthMiddleware(cfg.JWTSecret), orderHandler.Checkout)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,
