@@ -90,6 +90,8 @@ func main() {
 	r.DELETE("/cart/items/:product_id", middleware.AuthMiddleware(cfg.JWTSecret), cartHandler.RemoveItemHandler)
 
 	r.POST("/orders", middleware.AuthMiddleware(cfg.JWTSecret), orderHandler.Checkout)
+	r.GET("/orders", middleware.AuthMiddleware(cfg.JWTSecret), orderHandler.GetOrders)
+	r.GET("/orders/:id", middleware.AuthMiddleware(cfg.JWTSecret), orderHandler.GetOrderByID)
 
 	srv := &http.Server{
 		Addr:    ":" + cfg.Port,

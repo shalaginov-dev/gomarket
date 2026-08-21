@@ -57,4 +57,22 @@ func (s *OrderService) Checkout(ctx context.Context, userID int) (*domain.Order,
 	return order, nil
 }
 
-//1
+//func (s *OrderService) Create(ctx context.Context, userID, productID int) (*domain.Order, error) {}
+
+//func (s *OrderService) Delete(ctx context.Context, userID int) error {}
+
+func (s *OrderService) GetAll(ctx context.Context, userID int) ([]domain.Order, error) {
+	orders, err := s.orderRepo.GetAll(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return orders, nil
+}
+
+func (s *OrderService) GetByID(ctx context.Context, userID, orderID int) (*domain.Order, error) {
+	order, err := s.orderRepo.GetByID(ctx, userID, orderID)
+	if err != nil {
+		return nil, err
+	}
+	return order, nil
+}
